@@ -1,10 +1,17 @@
 from typing import Set
 from math import pi
-import bpy
-
+from contextlib import contextmanager
 from pathlib import Path
+from threading import Thread
+from functools import partial
 from bpy.types import Context, Event
+
+from ..i18n.ctx import OCTX
 from ...utils.logger import logger
+from ..timer import Timer
+from ...utils import update_screen
+
+import bpy
 
 DESKTOP = Path().home().joinpath("Desktop")
 
@@ -20,7 +27,8 @@ class RemeshOperator(bpy.types.Operator):
     bl_idname = "mesh.cwfremesh"
     bl_description = "CWF Remesh"
     bl_label = "CWF Remesh"
-    bl_translation_context = "ops_ctx"
+    bl_translation_context = OCTX
+    running = False
 
     @classmethod
     def poll(cls, context):
@@ -30,6 +38,10 @@ class RemeshOperator(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
+        if RemeshOperator.running:
+            logger.info("Remesh is running")
+            return {"CANCELLED"}
+        CACHE_DIR = DESKTOP.joinpath("cwf_test")
         # 判断确实选择了网格
         obj = bpy.context.object
         if not obj.data.polygons:
@@ -39,45 +51,117 @@ class RemeshOperator(bpy.types.Operator):
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
 
-        if not DESKTOP.joinpath("cwf_test").exists():
-            DESKTOP.joinpath("cwf_test").mkdir()
-        if not DESKTOP.joinpath("cwf_test/_LBFGSOUT").exists():
-            DESKTOP.joinpath("cwf_test/_LBFGSOUT").mkdir()
-        oname = obj.name
-        objpath = DESKTOP.joinpath(f"cwf_test/{oname}.obj")
-        bpy.ops.wm.obj_export(filepath=objpath.as_posix(),
-                              export_selected_objects=True,
-                              apply_modifiers=True,
-                              export_triangulated_mesh=True,
-                              export_uv=False,
-                              export_materials=False,
-                              )
+        if not CACHE_DIR.exists():
+            CACHE_DIR.mkdir()
+        if not CACHE_DIR.joinpath("_LBFGSOUT").exists():
+            CACHE_DIR.joinpath("_LBFGSOUT").mkdir()
+        oname = obj.name + "_Remesh"
+        objpath = CACHE_DIR.joinpath(f"{oname}.obj")
+        with self.prepare_obj(obj):
+            bpy.ops.wm.obj_export(filepath=objpath.as_posix(),
+                                  export_selected_objects=True,
+                                  apply_modifiers=True,
+                                  export_triangulated_mesh=True,
+                                  export_uv=False,
+                                  export_materials=False,
+                                  )
         from ...cxxlibs import remesh
-        p = objpath.as_posix()
-        n = context.scene.cwf_prop.samples
         try:
-            remesh.remesh(p, n)
-            # 结束后得到 Remesh.obj 导入blender
-            objpath2 = DESKTOP.joinpath(f"cwf_test/_LBFGSOUT/Ours_{n}_{oname}_Remesh.obj")
-            self.import_obj(objpath2.as_posix())
-            # 清理
-            for file in DESKTOP.joinpath("cwf_test/_LBFGSOUT").iterdir():
-                file.unlink()
+            """
+            "RemeshParams"
+                "outputDir", outputDir
+                "meshName", meshName
+                "workDir", workDir
+                "samples", samples
+                "fnum", fnum
+                "alpha", alpha
+                "eplison", eplison
+                "lambda", lambda
+                "decay", decay
+                "bOutputOnlyEnd", &BGAL::RemeshParams::bOutputOnlyEnd)
+                "bOutputXyz", &BGAL::RemeshParams::bOutputXyz)
+                "bOutputRemesh", &BGAL::RemeshParams::bOutputRemesh)
+                "bOutputRVD", &BGAL::RemeshParams::bOutputRVD);
+            """
+            params = remesh.RemeshParams()
+            params.outputDir = CACHE_DIR.joinpath("_LBFGSOUT").as_posix()
+            params.meshName = oname
+            params.workDir = objpath.parent.as_posix()
+            params.bOutputOnlyEnd = True
+            params.bOutputRVD = False
+            params.bOutputXyz = False
+            context.scene.cwf_prop.set_params(params)
+
+            def cb1(step, out):
+                Timer.put((RemeshOperator.import_obj, out, params.meshName))
+
+            # params.batchRemeshCallback = cb1
+
+            def cb2(step, out):
+                RemeshOperator.running = False
+                Timer.put(update_screen)
+                if out == oname:
+                    print("Remesh Failed!")
+                    return
+                print("Finisehed:", step, out)
+
+                def load(out, name):
+                    RemeshOperator.import_obj(out, name)
+                    # 清理
+                    for file in CACHE_DIR.joinpath("_LBFGSOUT").iterdir():
+                        file.unlink()
+                Timer.put((load, out, params.meshName))
+
+            params.finishedCallback = cb2
+
+            def task(params):
+                try:
+                    remesh.remesh(params)
+                except RuntimeError as e:
+                    print(e)
+                finally:
+                    ...
+            RemeshOperator.running = True
+            Thread(target=task, args=(params,)).start()
         except RuntimeError:
             logger.error("Remesh failed")
             return {"CANCELLED"}
         return {"FINISHED"}
 
-    def import_obj(self, filepath) -> list[bpy.types.Object]:
+    @contextmanager
+    def prepare_obj(self, obj: bpy.types.Object):
+        cfg = bpy.context.scene.cwf_prop
+        if cfg.pre_simplify and obj.data.vertices.__len__() > 100:
+            # 添加精简修改器
+            mod = obj.modifiers.new(name="Simplify", type="DECIMATE")
+            mod.ratio = cfg.pre_simplify_ratio
+        try:
+            yield
+        except Exception:
+            ...
+        if cfg.pre_simplify and obj.data.vertices.__len__() > 100:
+            obj.modifiers.remove(mod)
+
+    @staticmethod
+    def import_obj(filepath, name=None) -> list[bpy.types.Object]:
         rec_objs = set(bpy.context.scene.objects)
         bpy.ops.wm.obj_import(filepath=filepath)
         new_objs = set(bpy.context.scene.objects) - rec_objs
-        for obj in new_objs:
+        obj = None if not new_objs else list(new_objs)[0]
+        if obj:
             bpy.context.view_layer.objects.active = obj
+            bpy.context.view_layer.update()
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.normals_make_consistent(inside=False)
+            bpy.ops.object.mode_set(mode="OBJECT")
             # bpy.ops.object.shade_smooth()
+            obj.name = name or obj.name
         return list(new_objs)
 
     def prepare_nodegroup(self) -> bpy.types.NodeGroup:
+        """
+        效果比较差, 看着不像poisson 采样
+        """
         if "._CWF Remesh" in bpy.data.node_groups:
             return bpy.data.node_groups["._CWF Remesh"]
         node_group = bpy.data.node_groups.new(name="._CWF Remesh", type="GeometryNodeTree")
@@ -108,7 +192,7 @@ class ExportXyz(bpy.types.Operator):
     bl_idname = "mesh.export_xyz"
     bl_description = "Export XYZ"
     bl_label = "Export XYZ"
-    bl_translation_context = "ops_ctx"
+    bl_translation_context = OCTX
 
     def invoke(self, context: Context, event: Event) -> Set[int] | Set[str]:
         return self.execute(context)
@@ -133,6 +217,7 @@ class ImportXyz(bpy.types.Operator):
     bl_label = "Import XYZ"
     bl_description = "Import XYZ"
     bl_options = {"REGISTER", "UNDO"}
+    bl_translation_context = OCTX
 
     def execute(self, context):
         p = context.scene.cwf_prop.xyz_path
