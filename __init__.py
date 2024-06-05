@@ -4,7 +4,7 @@ bl_info = {
     'version': (0, 0, 1),
     'blender': (3, 0, 0),
     'location': '3DView->Panel',
-    'category': '辣椒出品',
+    'category': 'Mesh',
     'doc_url': "https://bing.com"
 }
 
