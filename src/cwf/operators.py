@@ -11,6 +11,7 @@ from ...utils.logger import logger
 from ..timer import Timer
 from ...utils import update_screen
 
+import tempfile
 import bpy
 
 DESKTOP = Path().home().joinpath("Desktop")
@@ -41,7 +42,8 @@ class RemeshOperator(bpy.types.Operator):
         if RemeshOperator.running:
             logger.info("Remesh is running")
             return {"CANCELLED"}
-        CACHE_DIR = DESKTOP.joinpath("cwf_test")
+        # CACHE_DIR = DESKTOP.joinpath("cwf_test")
+        CACHE_DIR = Path(tempfile.gettempdir())
         # 判断确实选择了网格
         obj = bpy.context.object
         if not obj.data.polygons:
