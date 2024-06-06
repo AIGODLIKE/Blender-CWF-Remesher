@@ -43,7 +43,7 @@ class RemeshOperator(bpy.types.Operator):
             logger.info("Remesh is running")
             return {"CANCELLED"}
         # CACHE_DIR = DESKTOP.joinpath("cwf_test")
-        CACHE_DIR = Path(tempfile.gettempdir())
+        CACHE_DIR = Path(tempfile.gettempdir()).joinpath("cwf")
         # 判断确实选择了网格
         obj = bpy.context.object
         if not obj.data.polygons:
@@ -57,7 +57,7 @@ class RemeshOperator(bpy.types.Operator):
             CACHE_DIR.mkdir()
         if not CACHE_DIR.joinpath("_LBFGSOUT").exists():
             CACHE_DIR.joinpath("_LBFGSOUT").mkdir()
-        oname = obj.name + "_Remesh"
+        oname = bpy.path.clean_name(obj.name) + "_Remesh"
         objpath = CACHE_DIR.joinpath(f"{oname}.obj")
         with self.prepare_obj(obj):
             bpy.ops.wm.obj_export(filepath=objpath.as_posix(),
@@ -111,6 +111,8 @@ class RemeshOperator(bpy.types.Operator):
                     RemeshOperator.import_obj(out, name)
                     # 清理
                     for file in CACHE_DIR.joinpath("_LBFGSOUT").iterdir():
+                        file.unlink()
+                    for file in CACHE_DIR.iterdir():
                         file.unlink()
                 Timer.put((load, out, params.meshName))
 
