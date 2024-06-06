@@ -1,4 +1,6 @@
 __pycache__
+.vscode
+build
 *.pyc
 *.DS_Store
 log.log
