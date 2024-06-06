@@ -113,6 +113,8 @@ class RemeshOperator(bpy.types.Operator):
                     for file in CACHE_DIR.joinpath("_LBFGSOUT").iterdir():
                         file.unlink()
                     for file in CACHE_DIR.iterdir():
+                        if file.is_dir():
+                            continue
                         file.unlink()
                 Timer.put((load, out, params.meshName))
 
