@@ -1,0 +1,26 @@
+add_rules("mode.debug", "mode.release")
+
+-- set_values("PYTHON_EXECUTABLE", "\"/Users/karrycharon/.pyenv/shims/python3\"")
+-- add_defines("PYTHON_EXECUTABLE=" .. "\"/Users/karrycharon/.pyenv/shims/python3\"", {public=true})
+-- add_requires("python 3.10", {system=false})
+add_requires("eigen", "libigl", "pybind11", "spdlog")
+-- add_requireconfs("pybind11.python", { override = true, system = false , version = "3.11" })
+
+target("remesh_test")
+    set_kind("binary")
+    add_files("remesh.cpp")
+    -- add_rules("python.library", { soabi = true })
+    add_packages("openmp","eigen", "libigl", "spdlog", "pybind11")
+    add_deps("Algorithm", "BaseShape", "Draw", "Geodesic", "Integral", "Model", "Optimization", "PointCloudProcessing", "PQP", "Reconstruction", "Tessellation2D", "Tessellation3D", "CVTLike", "PoissonDisk")
+
+target("remesh")
+    set_kind("shared")
+    add_rules("python.library", { soabi = true })
+    add_files("remesh.cpp")
+    add_packages("openmp", "eigen", "libigl", "spdlog", "pybind11")
+    add_rpathdirs("./")
+    add_deps("Algorithm", "BaseShape", "Draw", "Geodesic", "Integral", "Model", "Optimization", "PointCloudProcessing", "PQP", "Reconstruction", "Tessellation2D", "Tessellation3D", "CVTLike", "PoissonDisk")
+
+    after_build(function (target)
+        os.cp(target:targetfile(), "../../cxxlibs/" .. os.host() .. "/" .. target:filename())
+    end)

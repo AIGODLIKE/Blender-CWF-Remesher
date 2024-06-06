@@ -1,0 +1,2 @@
+-- add_includedirs("./**")
+-- add_includedirs("../")

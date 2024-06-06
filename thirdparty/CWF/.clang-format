@@ -1,0 +1,9 @@
+# .clang-format 文件
+# 允许短的枚举块放在同一行 
+AllowShortEnumsOnASingleLine: true
+# 每行字符的限制，0表示没有限制  但为0 和 枚举同行 会出问题(连续注释对齐会有点问题)
+ColumnLimit: 200
+# 函数参数在多行时，每个参数独立成行
+AlignAfterOpenBracket: Align
+BinPackParameters: false
+AllowAllParametersOfDeclarationOnNextLine: false
