@@ -174,7 +174,7 @@ void _CVT3D::OutputRemesh(std::vector<_Point3> &sites, _Restricted_Tessellation3
   }
 
   // set<MyFace> rdtFaces;
-
+  set<set<int>> faces;
   for (auto e : RDT_Edges) {
     for (int pid : neibors[e.first]) {
       if (RDT_Edges.find({min(pid, e.first), max(pid, e.first)}) == RDT_Edges.end())
@@ -198,8 +198,11 @@ void _CVT3D::OutputRemesh(std::vector<_Point3> &sites, _Restricted_Tessellation3
       if (f3 != maxf && f3 != minf) {
         mid = f3;
       }
-      outRDT << "f " << maxf + 1 << " " << mid + 1 << " " << minf + 1 << endl;
-      // rdtFaces.insert(MyFace(maxf, mid, minf));
+      auto face = set<int>({maxf + 1, mid + 1, minf + 1});
+      if (faces.find(face) == faces.end()) {
+        faces.insert(face);
+        outRDT << "f " << maxf + 1 << " " << mid + 1 << " " << minf + 1 << endl;
+      }
     }
   }
 
