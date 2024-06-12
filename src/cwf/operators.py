@@ -5,6 +5,8 @@ from pathlib import Path
 from threading import Thread
 from functools import partial
 from bpy.types import Context, Event
+from mathutils.kdtree import KDTree
+from mathutils import Vector
 
 from ..i18n.ctx import OCTX
 from ...utils.logger import logger
@@ -13,6 +15,8 @@ from ...utils import update_screen
 
 import tempfile
 import bpy
+import numpy as np
+
 
 DESKTOP = Path().home().joinpath("Desktop")
 
@@ -59,6 +63,7 @@ class RemeshOperator(bpy.types.Operator):
             CACHE_DIR.joinpath("_LBFGSOUT").mkdir()
         oname = bpy.path.clean_name(obj.name) + "_Remesh"
         objpath = CACHE_DIR.joinpath(f"{oname}.obj")
+        # mesh_kdtree = {"Tree": None, "Verts": None, "Normals": None}
         with self.prepare_obj(obj):
             bpy.ops.wm.obj_export(filepath=objpath.as_posix(),
                                   export_selected_objects=True,
@@ -67,6 +72,23 @@ class RemeshOperator(bpy.types.Operator):
                                   export_uv=False,
                                   export_materials=False,
                                   )
+            # mesh: bpy.types.Mesh = obj.data
+            # size = len(mesh.vertices)
+            # verts = np.zeros(size * 3)
+            # normals = np.zeros(size * 3)
+            # mesh.vertices.foreach_get("co", verts)
+            # mesh.vertices.foreach_get("normal", normals)
+            # verts = verts.reshape((-1, 3))
+            # normals = normals.reshape((-1, 3))
+            # kd = KDTree(size)
+
+            # for i in range(size):
+            #     kd.insert(verts[i], i)
+
+            # kd.balance()
+            # mesh_kdtree["Verts"] = verts
+            # mesh_kdtree["Normals"] = normals
+            # mesh_kdtree["Tree"] = kd
         from ...cxxlibs import remesh
         try:
             """
@@ -158,6 +180,7 @@ class RemeshOperator(bpy.types.Operator):
             bpy.context.view_layer.objects.active = obj
             bpy.context.view_layer.update()
             bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.select_all(action="SELECT")
             bpy.ops.mesh.normals_make_consistent(inside=False)
             bpy.ops.object.mode_set(mode="OBJECT")
             # bpy.ops.object.shade_smooth()
