@@ -1,6 +1,6 @@
 ## Introduction
 
-This project is the implementation of [CWF](https://github.com/Xrvitd/CWF) paper in Blender.
+This project is the implementation of [CWF](https://github.com/Xrvitd/CWF) paper in Blender(3.6+).
 
 ## Features
 
@@ -8,8 +8,12 @@ This project is the implementation of [CWF](https://github.com/Xrvitd/CWF) paper
 
 ·Set target sampling value
 
-## Todo
-·Cleaning overlapping mesh and correcting surface normals
+·Using pre simplification to improve computing speed
+
+·Multi-Language Support(EN/zh-CN)
+
+![image](https://github.com/AIGODLIKE/Blender-CWF-Remesher/assets/116185401/27dd2759-2ca2-4543-a909-cc5554bcdf37)
+
 
 ## Compile Manually
 
