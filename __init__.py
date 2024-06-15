@@ -1,7 +1,7 @@
 bl_info = {
     'name': 'CWF Remesh',
     'author': '会飞的键盘侠',
-    'version': (0, 0, 2),
+    'version': (0, 0, 3),
     'blender': (3, 0, 0),
     'location': '3DView->Panel',
     'category': 'Mesh',
