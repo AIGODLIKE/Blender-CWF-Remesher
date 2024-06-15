@@ -17,13 +17,13 @@ This project is the implementation of [CWF](https://github.com/Xrvitd/CWF) paper
 ## Tips
 1. Avoid [non-manifold ](https://docs.blender.org/manual/en/4.1/glossary/index.html#term-Non-manifold)
 
-·Some borders and holes (edges with only a single connected face), as faces have no thickness.
+   ·Some borders and holes (edges with only a single connected face), as faces have no thickness.
 
-·Edges and vertices not belonging to any face (wire).
+   ·Edges and vertices not belonging to any face (wire).
 
-·Edges connected to three or more faces (interior faces).
+   ·Edges connected to three or more faces (interior faces).
 
-·Vertices belonging to faces that are not adjoining (e.g. two cones sharing the vertex at the apex).
+   ·Vertices belonging to faces that are not adjoining (e.g. two cones sharing the vertex at the apex).
 
 2. Generate number of faces through sampling control（Usually, the larger the sampling, the more faces there are）
 
