@@ -27,7 +27,7 @@ This project is the implementation of [CWF](https://github.com/Xrvitd/CWF) paper
 
 2. Generate number of faces through sampling control（Usually, the larger the sampling, the more faces there are）
 
-3.Simplification can improve speed（The smaller the simplification value, the faster it will be, but it will reduce the effectiveness of the CWF algorithm）
+3. Simplification can improve speed（The smaller the simplification value, the faster it will be, but it will reduce the effectiveness of the CWF algorithm）
 
 
 ## Compile Manually
