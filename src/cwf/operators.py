@@ -39,7 +39,7 @@ class RemeshOperator(bpy.types.Operator):
     def poll(cls, context):
         return bpy.context.object and bpy.context.object.type == "MESH"
 
-    def invoke(self, context: Context, event: Event) -> Set[int] | Set[str]:
+    def invoke(self, context: Context, event: Event):
         return self.execute(context)
 
     def execute(self, context):
@@ -223,7 +223,7 @@ class ExportXyz(bpy.types.Operator):
     bl_label = "Export XYZ"
     bl_translation_context = OCTX
 
-    def invoke(self, context: Context, event: Event) -> Set[int] | Set[str]:
+    def invoke(self, context: Context, event: Event):
         return self.execute(context)
 
     def execute(self, context):
